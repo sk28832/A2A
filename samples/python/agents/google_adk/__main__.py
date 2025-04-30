@@ -1,7 +1,7 @@
 from common.server import A2AServer
 from common.types import AgentCard, AgentCapabilities, AgentSkill, MissingAPIKeyError
 from task_manager import AgentTaskManager
-from agent import ReimbursementAgent
+from agent import MarketAgent
 import click
 import os
 import logging
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option("--host", default="localhost")
-@click.option("--port", default=10002)
+@click.option("--port", default=10003)  # Changed to 10003 to avoid conflicts with your other agent
 def main(host, port):
     try:
         # Check for API key only if Vertex AI is not configured
@@ -27,25 +27,31 @@ def main(host, port):
         
         capabilities = AgentCapabilities(streaming=True)
         skill = AgentSkill(
-            id="process_reimbursement",
-            name="Process Reimbursement Tool",
-            description="Helps with the reimbursement process for users given the amount and purpose of the reimbursement.",
-            tags=["reimbursement"],
-            examples=["Can you reimburse me $20 for my lunch with the clients?"],
+            id="market_discovery",
+            name="Market Discovery Tool",
+            description="Helps discover businesses within markets based on various criteria such as roles.",
+            tags=["market", "business", "discovery"],
+            examples=[
+                "What markets are available?",
+                "What businesses are in the Electronics Marketplace?",
+                "Find sellers in the Electronics Marketplace",
+                "What roles are supported in the Electronics Marketplace?",
+                "Tell me about DeviceMart"
+            ],
         )
         agent_card = AgentCard(
-            name="Reimbursement Agent",
-            description="This agent handles the reimbursement process for the employees given the amount and purpose of the reimbursement.",
+            name="Market Agent",
+            description="This agent provides information about markets and helps discover businesses within markets based on various criteria.",
             url=f"http://{host}:{port}/",
             version="1.0.0",
-            defaultInputModes=ReimbursementAgent.SUPPORTED_CONTENT_TYPES,
-            defaultOutputModes=ReimbursementAgent.SUPPORTED_CONTENT_TYPES,
+            defaultInputModes=MarketAgent.SUPPORTED_CONTENT_TYPES,
+            defaultOutputModes=MarketAgent.SUPPORTED_CONTENT_TYPES,
             capabilities=capabilities,
             skills=[skill],
         )
         server = A2AServer(
             agent_card=agent_card,
-            task_manager=AgentTaskManager(agent=ReimbursementAgent()),
+            task_manager=AgentTaskManager(agent=MarketAgent()),
             host=host,
             port=port,
         )

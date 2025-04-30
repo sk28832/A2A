@@ -18,7 +18,7 @@ from common.types import (
     SendTaskStreamingResponse,
 )
 from common.server.task_manager import InMemoryTaskManager
-from agent import ReimbursementAgent
+from agent import MarketAgent
 import common.server.utils as utils
 from typing import Union
 import logging
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class AgentTaskManager(InMemoryTaskManager):
 
-    def __init__(self, agent: ReimbursementAgent):
+    def __init__(self, agent: MarketAgent):
         super().__init__()
         self.agent = agent
 
@@ -99,12 +99,12 @@ class AgentTaskManager(InMemoryTaskManager):
     ) -> None:
         task_send_params: TaskSendParams = request.params
         if not utils.are_modalities_compatible(
-            task_send_params.acceptedOutputModes, ReimbursementAgent.SUPPORTED_CONTENT_TYPES
+            task_send_params.acceptedOutputModes, MarketAgent.SUPPORTED_CONTENT_TYPES
         ):
             logger.warning(
                 "Unsupported output mode. Received %s, Support %s",
                 task_send_params.acceptedOutputModes,
-                ReimbursementAgent.SUPPORTED_CONTENT_TYPES,
+                MarketAgent.SUPPORTED_CONTENT_TYPES,
             )
             return utils.new_incompatible_types_error(request.id)
     async def on_send_task(self, request: SendTaskRequest) -> SendTaskResponse:
@@ -131,8 +131,6 @@ class AgentTaskManager(InMemoryTaskManager):
                 logger.error(f"Task {task_id} not found for updating the task")
                 raise ValueError(f"Task {task_id} not found")
             task.status = status
-            #if status.message is not None:
-            #    self.task_messages[task_id].append(status.message)
             if artifacts is not None:
                 if task.artifacts is None:
                     task.artifacts = []
@@ -147,7 +145,7 @@ class AgentTaskManager(InMemoryTaskManager):
             logger.error(f"Error invoking agent: {e}")
             raise ValueError(f"Error invoking agent: {e}")
         parts = [{"type": "text", "text": result}]
-        task_state = TaskState.INPUT_REQUIRED if "MISSING_INFO:" in result else TaskState.COMPLETED
+        task_state = TaskState.COMPLETED
         task = await self._update_store(
             task_send_params.id,
             TaskStatus(
@@ -161,4 +159,3 @@ class AgentTaskManager(InMemoryTaskManager):
         if not isinstance(part, TextPart):
             raise ValueError("Only text parts are supported")
         return part.text
-
